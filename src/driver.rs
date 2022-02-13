@@ -44,7 +44,7 @@ where
     }
 
     /// Initialise the controller
-    pub fn init<DELAY: DelayMs<u8>>(
+    fn init<DELAY: DelayMs<u8>>(
         &mut self,
         spi: &mut SPI,
         delay: &mut DELAY,
@@ -54,7 +54,7 @@ where
         self.interface.wait_until_idle();
 
         self.interface
-            .cmd_with_data(spi, cmd::DRIVER_CONTROL, &[HEIGHT - 1, 0x00, 0x00])?;
+            .cmd_with_data(spi, cmd::DRIVER_CONTROL, &[(HEIGHT as u8) - 1, 0x00, 0x00])?;
 
         self.interface
             .cmd_with_data(spi, cmd::DATA_ENTRY_MODE, &[flag::DATA_ENTRY_INCRY_INCRX])?;
@@ -73,21 +73,12 @@ where
         self.interface.wait_until_idle();
         Ok(())
     }
-
     /// Update the whole BW buffer on the display driver
-    pub fn update_bw_frame(&mut self, spi: &mut SPI, buffer: &[u8]) -> Result<(), SPI::Error> {
+    pub fn update_frame(&mut self, spi: &mut SPI, buffer: &[u8]) -> Result<(), SPI::Error> {
         self.use_full_frame(spi)?;
         self.interface
             .cmd_with_data(spi, cmd::WRITE_BW_DATA, &buffer)
     }
-
-    /// Update the whole Red buffer on the display driver
-    pub fn update_red_frame(&mut self, spi: &mut SPI, buffer: &[u8]) -> Result<(), SPI::Error> {
-        self.use_full_frame(spi)?;
-        self.interface
-            .cmd_with_data(spi, cmd::WRITE_RED_DATA, &buffer)
-    }
-
     /// Start an update of the whole display
     pub fn display_frame(&mut self, spi: &mut SPI) -> Result<(), SPI::Error> {
         self.interface
@@ -100,34 +91,21 @@ where
     }
 
     /// Make the whole black and white frame on the display driver white
-    pub fn clear_bw_frame(&mut self, spi: &mut SPI) -> Result<(), SPI::Error> {
+    pub fn clear_frame(&mut self, spi: &mut SPI) -> Result<(), SPI::Error> {
         self.use_full_frame(spi)?;
 
         // TODO: allow non-white background color
-        let color = color::Color::White.get_byte_value();
+        let color = color::White as u8;
 
         self.interface.cmd(spi, cmd::WRITE_BW_DATA)?;
         self.interface
-            .data_x_times(spi, color, u32::from(WIDTH) / 8 * u32::from(HEIGHT))?;
-        Ok(())
-    }
-
-    /// Make the whole red frame on the display driver white
-    pub fn clear_red_frame(&mut self, spi: &mut SPI) -> Result<(), SPI::Error> {
-        self.use_full_frame(spi)?;
-
-        // TODO: allow non-white background color
-        let color = color::Color::White.inverse().get_byte_value();
-
-        self.interface.cmd(spi, cmd::WRITE_RED_DATA)?;
-        self.interface
-            .data_x_times(spi, color, u32::from(WIDTH) / 8 * u32::from(HEIGHT))?;
+            .data_x_times(spi, color, (WIDTH as u32) / 8 * (HEIGHT as u32))?;
         Ok(())
     }
 
     fn use_full_frame(&mut self, spi: &mut SPI) -> Result<(), SPI::Error> {
         // choose full frame/ram
-        self.set_ram_area(spi, 0, 0, u32::from(WIDTH) - 1, u32::from(HEIGHT) - 1)?;
+        self.set_ram_area(spi, 0, 0, (WIDTH as u32) - 1, (HEIGHT as u32) - 1)?;
 
         // start from the beginning
         self.set_ram_counter(spi, 0, 0)
