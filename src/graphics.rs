@@ -78,12 +78,12 @@ impl DrawTarget for Display1in54 {
                 match self.rotation {
                     Rotate0=>{
                         let mut idx=x+(y*WIDTH);
-                        let bit=0x80>>(idx%8);
+                        let bit=0b10000000>>(idx%8);
                         idx>>=3;
                         if color {
-                            self.buffer[idx]|=bit;
-                        } else {
                             self.buffer[idx]&=!bit;
+                        } else {
+                            self.buffer[idx]|=bit;
                         }
                     },
                     _=>todo!(),
