@@ -16,10 +16,6 @@ use embedded_graphics_core::{
     primitives::Rectangle,
     Pixel,
 };
-use bitvec::{
-    prelude::*,
-    BitArr,
-};
 
 /// Displayrotation
 #[derive(Clone, Copy)]
@@ -45,7 +41,7 @@ impl Default for DisplayRotation {
 /// - Rotations
 pub trait Display:DrawTarget {
     /// Sets the entire buffer to the given color
-    fn clear(&mut self,color:Color);
+    fn clear_buffer(&mut self,color:Color);
     /// Returns the buffer
     fn buffer(&self) -> &[u8];
     /// Sets the rotation of the display
@@ -56,14 +52,14 @@ pub trait Display:DrawTarget {
 
 /// Display for a 200x200 panel
 pub struct Display1in54 {
-    buffer:BitArr!(for WIDTH*HEIGHT, in u8,Lsb0),
+    buffer:[u8;(WIDTH*HEIGHT)/8],
     rotation: DisplayRotation,
 }
 impl Display1in54 {
     /// Create a display buffer
     pub fn new()->Self {
         Display1in54 {
-            buffer:BitArray::ZERO,
+            buffer:[0xff;(WIDTH*HEIGHT)/8],
             rotation:DisplayRotation::default(),
         }
     }
@@ -81,17 +77,16 @@ impl DrawTarget for Display1in54 {
                 let color=pixel.1==Black;
                 match self.rotation {
                     Rotate0=>{
-                        *self.buffer.get_mut(x+(y*WIDTH)).unwrap()=color;
+                        let mut idx=x+(y*WIDTH);
+                        let bit=0x80>>(idx%8);
+                        idx>>=3;
+                        if color {
+                            self.buffer[idx]|=bit;
+                        } else {
+                            self.buffer[idx]&=!bit;
+                        }
                     },
-                    Rotate90=>{
-                        *self.buffer.get_mut(y+(x*HEIGHT)).unwrap()=color;
-                    },
-                    Rotate180=>{
-                        *self.buffer.get_mut((WIDTH-x)+((HEIGHT-y)*WIDTH)).unwrap()=color;
-                    },
-                    Rotate270=>{
-                        *self.buffer.get_mut((HEIGHT-y)+(x*HEIGHT)).unwrap()=color;
-                    },
+                    _=>todo!(),
                 }
             }
         }
@@ -105,11 +100,15 @@ impl Dimensions for Display1in54 {
 }
 
 impl Display for Display1in54 {
-    fn clear(&mut self,color:Color) {
-        self.buffer.fill(color==Black);
+    fn clear_buffer(&mut self,color:Color) {
+        if color==Black {
+            self.buffer.fill(0);
+        } else {
+            self.buffer.fill(0xff);
+        }
     }
     fn buffer(&self)->&[u8] {
-        self.buffer.as_raw_slice()
+        &self.buffer
     }
     fn set_rotation(&mut self, rotation: DisplayRotation) {
         self.rotation = rotation;
