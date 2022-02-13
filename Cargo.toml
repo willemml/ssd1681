@@ -16,7 +16,10 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 embedded-hal = { version = "0.2.7", features = ["unproven"] }
 embedded-graphics-core = "0.3.3"
-bitvec="1"
+
+[dependencies.bitvec]
+version="1"
+default-features=false
 
 [dev-dependencies]
 [target.'cfg(target_os = "linux")'.dependencies]
