@@ -38,7 +38,7 @@ pub mod prelude {
 
     pub use crate::graphics::{Display, Display1in54, DisplayRotation};
 }
-/// Reexports of embedded graphics [`BinaryColor`] and Gray4 definitions
+/// Reexports of embedded graphics [`Gray2`] definitions
 pub mod color {
     pub use embedded_graphics_core::pixelcolor::Gray2 as Color;
     pub use WHITE as White;
