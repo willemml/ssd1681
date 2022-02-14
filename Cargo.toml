@@ -1,6 +1,6 @@
 [package]
 name = "epd_driver"
-version = "0.3.0"
+version = "0.3.1"
 authors = ["Paul Diaconescu <p@afajl.com>", "Chris Nguyen <clinery8237@gmail.com>"]
 description = "Driver for the SSD1681 e-Paper display (EPD) controller, for use with embedded-hal"
 edition = "2018"
