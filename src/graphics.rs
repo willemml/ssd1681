@@ -1,6 +1,7 @@
 //! Graphics Support for EPDs
 /// TODO: Tests (maybe)
 
+use alloc::vec::Vec;
 use crate::color::{
     Color,
 };
@@ -58,7 +59,10 @@ pub trait Display:DrawTarget {
 
 /// Display for a 200x200 panel
 pub struct Display1in54 {
+    #[cfg(not(feature="alloc"))]
     buffer:([u8;(WIDTH*HEIGHT)/8],[u8;(WIDTH*HEIGHT)/8]),
+    #[cfg(feature="alloc")]
+    buffer:(Vec<u8>,Vec<u8>),
     rotation: DisplayRotation,
     inverted:bool,
 }
@@ -66,7 +70,10 @@ impl Display1in54 {
     /// Create a display buffer
     pub fn new()->Self {
         Display1in54 {
+            #[cfg(not(feature="alloc"))]
             buffer:([0xff;(WIDTH*HEIGHT)/8],[0xff;(WIDTH*HEIGHT)/8]),
+            #[cfg(feature="alloc")]
+            buffer:(vec![0xff;(WIDTH*HEIGHT)/8],vec![0xff;(WIDTH*HEIGHT)/8]),
             rotation:DisplayRotation::default(),
             inverted:false,
         }

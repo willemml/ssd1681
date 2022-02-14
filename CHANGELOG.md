@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 All dates are in the format MM/DD/YYYY
 
+## [0.3.1] 2/14/2022
+### Added
+- Support for the `alloc` crate and using `Vec` for the buffers to prevent stack overflows (was a problem on 20k stack ESP32)
+
 ## [0.3.0] 2/14/2022
 ### Added
 - Full and partial refresh LUTs and a way to swap between them.

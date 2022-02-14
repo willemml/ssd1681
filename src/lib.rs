@@ -27,6 +27,10 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
 
+#[cfg(feature="alloc")]
+#[macro_use]
+extern crate alloc;
+
 
 pub mod graphics;
 pub mod driver;
