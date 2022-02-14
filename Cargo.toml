@@ -1,6 +1,6 @@
 [package]
 name = "epd_driver"
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Paul Diaconescu <p@afajl.com>", "Chris Nguyen <clinery8237@gmail.com>"]
 description = "Driver for the SSD1681 e-Paper display (EPD) controller, for use with embedded-hal"
 edition = "2018"
@@ -14,12 +14,8 @@ categories = ["embedded", "no-std"]
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-embedded-hal = { version = "0.2.7", features = ["unproven"] }
+embedded-hal = "=1.0.0-alpha.6"
 embedded-graphics-core = "0.3.3"
-
-[dev-dependencies]
-[target.'cfg(target_os = "linux")'.dependencies]
-linux-embedded-hal = "0.3.0"
 
 [profile.release]
 lto = true

@@ -3,11 +3,12 @@
 use core::fmt::Debug;
 use core::marker::PhantomData;
 use embedded_hal::{
-    blocking::{delay::DelayMs, spi::Write},
-    digital::v2::{InputPin, OutputPin},
+    delay::blocking::DelayUs,
+    spi::blocking::Write,
+    digital::blocking::{InputPin, OutputPin},
 };
 
-const RESET_DELAY_MS: u8 = 10;
+const RESET_DELAY_MS: u32 = 10;
 
 /// The Connection Interface of all (?) Waveshare EPD-Devices
 ///
@@ -38,7 +39,7 @@ where
     /// Create and initialize display
     pub fn new(cs: CS, busy: BUSY, dc: DC, rst: RST) -> Self {
         DisplayInterface {
-            _spi: PhantomData::default(),
+            _spi: PhantomData,
             cs,
             busy,
             dc,
@@ -98,11 +99,11 @@ where
     }
 
     /// Resets the device.
-    pub(crate) fn reset<DELAY: DelayMs<u8>>(&mut self, delay: &mut DELAY) {
+    pub(crate) fn reset<DELAY: DelayUs>(&mut self, delay: &mut DELAY)->Result<(),DELAY::Error> {
         self.rst.set_low().unwrap();
-        delay.delay_ms(RESET_DELAY_MS);
+        delay.delay_ms(RESET_DELAY_MS)?;
         self.rst.set_high().unwrap();
-        delay.delay_ms(RESET_DELAY_MS);
+        delay.delay_ms(RESET_DELAY_MS)
     }
 
     // spi write helper/abstraction function

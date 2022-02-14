@@ -2,7 +2,7 @@
 //!
 //! Used in the [Adafruit 1.54" B/W display](https://www.adafruit.com/product/4196)
 //!
-//! For a complete example see [the example](https://github.com/Clinery1/ssd1681/blob/master/examples/adafruit_1in54_bw.rs).
+//! Currently, there are no examples, but some will be added later.
 //!
 //! This driver is losely modeled after the
 //! [epd-waveshare](https://github.com/caemor/epd-waveshare) drivers but built for my needs.
@@ -12,12 +12,13 @@
 //! To
 //! display something you:
 //!
-//! 1. first create a buffer and draw things onto it, preferably
-//! with [`embedded_graphics`](https://github.com/jamwaffles/embedded-graphics).
-//! 2. then send the frame to the display driver using [`driver::Ssd1681::update_frame`]
-//! 3. then kick off a display update using [`driver::Ssd1681::update_frame`]
-//!
-//!
+//! 1. first create a buffer and draw things onto it with
+//!     [`embedded_graphics`](https://github.com/jamwaffles/embedded-graphics).
+//! 2. then send the frame to the display driver using [`driver::Ssd1681::update_frame1`] or
+//!     [`driver::Ssd1681::update_frame2`]
+//! 3. then kick off a display update using [`driver::Ssd1681::display_frame`]
+
+
 #![no_std]
 #![deny(missing_docs)]
 #![allow(clippy::pedantic)]
@@ -26,16 +27,34 @@
 #![allow(clippy::must_use_candidate)]
 #![allow(clippy::missing_errors_doc)]
 
+
 pub mod graphics;
 pub mod driver;
 pub mod interface;
-
 /// Useful exports
 pub mod prelude {
     pub use crate::color::Color;
     pub use crate::driver::Ssd1681;
 
     pub use crate::graphics::{Display, Display1in54, DisplayRotation};
+}
+/// Reexports of embedded graphics [`BinaryColor`] and Gray4 definitions
+pub mod color {
+    pub use embedded_graphics_core::pixelcolor::Gray2 as Color;
+    pub use WHITE as White;
+    pub use LGRAY as LightGray;
+    pub use DGRAY as DarkGray;
+    pub use BLACK as Black;
+
+
+    /// Gray4 white color
+    pub const WHITE:Color=Color::new(3);
+    /// Gray4 light gray color
+    pub const LGRAY:Color=Color::new(2);
+    /// Gray4 dark gray color
+    pub const DGRAY:Color=Color::new(1);
+    /// Gray4 black color
+    pub const BLACK:Color=Color::new(0);
 }
 mod cmd {
     pub const SW_RESET: u8 = 0x12;
@@ -49,7 +68,8 @@ mod cmd {
     // Update
     pub const SET_RAMX_COUNTER: u8 = 0x4E;
     pub const SET_RAMY_COUNTER: u8 = 0x4F;
-    pub const WRITE_BW_DATA: u8 = 0x24;
+    pub const WRITE_BUFFER1_DATA: u8 = 0x24;
+    pub const WRITE_BUFFER2_DATA: u8 = 0x26;
     pub const UPDATE_DISPLAY_CTRL2: u8 = 0x22;
     pub const MASTER_ACTIVATE: u8 = 0x20;
 }
@@ -58,15 +78,8 @@ mod flag {
     pub const INTERNAL_TEMP_SENSOR: u8 = 0x80;
     pub const BORDER_WAVEFORM_FOLLOW_LUT: u8 = 0b0100;
     pub const BORDER_WAVEFORM_LUT1: u8 = 0b0001;
-    pub const DISPLAY_MODE_1: u8 = 0xF7;
-}
-/// Reexports of embedded graphics [`BinaryColor`]
-pub mod color {
-    pub use embedded_graphics_core::pixelcolor::BinaryColor as Color;
-    pub use Color::{
-        Off as White,
-        On as Black,
-    };
+    pub const BW_DISPLAY_MODE_1: u8 = 0xF7;
+    pub const GRAY4_DISPLAY_MODE_1: u8 = 0xC7;  // required
 }
 
 /// Maximum display height this driver supports
