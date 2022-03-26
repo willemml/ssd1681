@@ -4,7 +4,7 @@ use core::fmt::Debug;
 use core::marker::PhantomData;
 use embedded_hal::{
     delay::blocking::DelayUs,
-    spi::blocking::Write,
+    spi::blocking::{Write, Transactional, Operation},
     digital::blocking::{InputPin, OutputPin},
 };
 
@@ -12,57 +12,39 @@ const RESET_DELAY_MS: u32 = 10;
 
 /// The Connection Interface of all (?) Waveshare EPD-Devices
 ///
-pub(crate) struct DisplayInterface<SPI, CS, BUSY, DC, RST> {
+pub(crate) struct DisplayInterface<SPI, BUSY, RST> {
     /// SPI
     _spi: PhantomData<SPI>,
-    /// CS for SPI
-    cs: CS,
     /// Low for busy, Wait until display is ready!
     busy: BUSY,
-    /// Data/Command Control Pin (High for data, Low for command)
-    dc: DC,
     /// Pin for Reseting
     rst: RST,
 }
 
-impl<SPI, CS, BUSY, DC, RST> DisplayInterface<SPI, CS, BUSY, DC, RST>
+impl<SPI, BUSY, RST> DisplayInterface<SPI, BUSY, RST>
 where
-    SPI: Write<u8>,
-    CS: OutputPin,
-    CS::Error: Debug,
+    SPI: Write + Transactional,
     BUSY: InputPin,
-    DC: OutputPin,
-    DC::Error: Debug,
     RST: OutputPin,
     RST::Error: Debug,
 {
     /// Create and initialize display
-    pub fn new(cs: CS, busy: BUSY, dc: DC, rst: RST) -> Self {
+    pub fn new(busy: BUSY, rst: RST) -> Self {
         DisplayInterface {
             _spi: PhantomData,
-            cs,
             busy,
-            dc,
             rst,
         }
     }
 
     /// Basic function for sending commands
     pub(crate) fn cmd(&mut self, spi: &mut SPI, command: u8) -> Result<(), SPI::Error> {
-        // low for commands
-        self.dc.set_low().unwrap();
-
-        // Transfer the command over spi
-        self.write(spi, &[command])
+        spi.exec(&mut [Operation::Transfer(&mut [0], &[command])])
     }
 
     /// Basic function for sending an array of u8-values of data over spi
     pub(crate) fn data(&mut self, spi: &mut SPI, data: &[u8]) -> Result<(), SPI::Error> {
-        // high for data
-        self.dc.set_high().unwrap();
-
-        // Transfer data (u8-array) over spi
-        self.write(spi, data)
+        spi.write(data)
     }
 
     /// Basic function for sending a command and the data belonging to it.
@@ -84,11 +66,9 @@ where
         val: u8,
         repetitions: u32,
     ) -> Result<(), SPI::Error> {
-        // high for data
-        let _ = self.dc.set_high();
         // Transfer data (u8) over spi
         for _ in 0..repetitions {
-            self.write(spi, &[val])?;
+            self.data(spi, &[val])?;
         }
         Ok(())
     }
@@ -104,27 +84,5 @@ where
         delay.delay_ms(RESET_DELAY_MS)?;
         self.rst.set_high().unwrap();
         delay.delay_ms(RESET_DELAY_MS)
-    }
-
-    // spi write helper/abstraction function
-    fn write(&mut self, spi: &mut SPI, data: &[u8]) -> Result<(), SPI::Error> {
-        // activate spi with cs low
-        self.cs.set_low().unwrap();
-
-        // transfer spi data
-        // Be careful!! Linux has a default limit of 4096 bytes per spi transfer
-        // see https://raspberrypi.stackexchange.com/questions/65595/spi-transfer-fails-with-buffer-size-greater-than-4096
-        if cfg!(target_os = "linux") {
-            for data_chunk in data.chunks(4096) {
-                spi.write(data_chunk)?;
-            }
-        } else {
-            spi.write(data)?;
-        }
-
-        // deativate spi with cs high
-        self.cs.set_high().unwrap();
-
-        Ok(())
     }
 }

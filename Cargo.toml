@@ -18,7 +18,7 @@ default=["alloc"]
 alloc=[]
 
 [dependencies]
-embedded-hal = "=1.0.0-alpha.6"
+embedded-hal = "1.0.0-alpha.7"
 embedded-graphics-core = "0.3.3"
 
 [profile.release]

@@ -3,7 +3,7 @@
 
 use core::fmt::Debug;
 use embedded_hal::{
-    spi::blocking::Write,
+    spi::blocking::{Write, Transactional},
     delay::blocking::DelayUs,
     digital::blocking::{InputPin, OutputPin},
 };
@@ -111,32 +111,26 @@ pub enum LutType {
 
 
 /// A configured display with a hardware interface.
-pub struct Ssd1681<SPI, CS, BUSY, DC, RST> {
-    interface: DisplayInterface<SPI, CS, BUSY, DC, RST>,
+pub struct Ssd1681<SPI, BUSY, RST> {
+    interface: DisplayInterface<SPI, BUSY, RST>,
     window:Option<Rectangle>,
     lut_type:LutType,
 }
-impl<SPI, CS, BUSY, DC, RST> Ssd1681<SPI, CS, BUSY, DC, RST>
+impl<SPI, BUSY, RST> Ssd1681<SPI, BUSY, RST>
 where
-    SPI: Write<u8>,
-    CS: OutputPin,
-    CS::Error: Debug,
+    SPI: Write + Transactional,
     BUSY: InputPin,
-    DC: OutputPin,
-    DC::Error: Debug,
     RST: OutputPin,
     RST::Error: Debug,
 {
     /// Create and initialize the display driver
     pub fn new<DELAY: DelayUs>(
         spi: &mut SPI,
-        cs: CS,
         busy: BUSY,
-        dc: DC,
         rst: RST,
         delay: &mut DELAY,
     ) -> Result<Self, SPI::Error>{
-        let interface = DisplayInterface::new(cs, busy, dc, rst);
+        let interface = DisplayInterface::new(busy, rst);
         let mut ssd1681 = Ssd1681 {interface,window:None,lut_type:LutType::Full};
         ssd1681.init(spi,delay)?;
         Ok(ssd1681)
